@@ -9,9 +9,42 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({extended: true}));
+
+function generateRandomString() {
+  const alphaNum = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  const alphaNumArray = alphaNum.split('')
+  let randomAlphaNumArray = []
+  for (let i of alphaNumArray) {
+    let randomIndex = Math.floor(Math.random() * Math.floor(alphaNumArray.length))
+    let randomAlphaNum = alphaNumArray[randomIndex]
+    if (randomAlphaNumArray.length <= 6){
+     randomAlphaNumArray.push(randomAlphaNum)
+    }
+  }
+  // ensure there is always at least one number in the random alphanumeric string 
+  for (let i of randomAlphaNumArray){
+    if (Number(i)) {
+      return randomAlphaNumArray.join('')
+    } else {
+      return generateRandomString()
+    }
+  }
+}
+
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
+});
+
+app.post("/urls", (req, res) => {
+  console.log(req.body);  // Log the POST request body to the console
+  res.send("Bitch");         // Respond with 'Ok' (we will replace this)
+});
+
+app.get("/urls/new", (req, res) => {
+  res.render("urls_new");
 });
 
 app.get("/urls/:shortURL", (req, res) => {
