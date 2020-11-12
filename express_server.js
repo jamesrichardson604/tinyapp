@@ -1,16 +1,26 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+const bodyParser = require("body-parser");
+const cookieParser = require('cookie-parser')
+const methodOverride = require('method-override');
+const cookieSession = require('cookie-session')
+
 
 app.set("view engine", "ejs");
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
 };
 
-const bodyParser = require("body-parser");
+
+//Middleware
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(methodOverride('_method'));
+app.use(cookieSession({
+  name: 'session',
+  keys: ['test'],
+}))
+app.use(cookieParser())
 
 function generateRandomString() {
   const alphaNum = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -19,7 +29,7 @@ function generateRandomString() {
   for (let i of alphaNumArray) {
     let randomIndex = Math.floor(Math.random() * Math.floor(alphaNumArray.length))
     let randomAlphaNum = alphaNumArray[randomIndex]
-    if (randomAlphaNumArray.length <= 6){
+    if (randomAlphaNumArray.length < 6){
      randomAlphaNumArray.push(randomAlphaNum)
     }
   }
@@ -39,16 +49,26 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { 
+    urls: urlDatabase,
+    username: req.cookies.username
+   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { 
+   username: req.cookies.username
+  };
+  res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL : urlDatabase[req.params.shortURL]};
+  const templateVars = { 
+    shortURL: req.params.shortURL, 
+    longURL : urlDatabase[req.params.shortURL],
+    username: req.cookies.username
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -62,6 +82,7 @@ app.get("/urls.json", (req, res) => {
 });
 
 //POST ROUTE
+//generate unique shortURL
 app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   const shortURL = generateRandomString();
@@ -69,6 +90,29 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`)
 });
 
+//delete URL
+app.post("/urls/:shortURL/delete", (req, res) => {
+  delete urlDatabase[req.params.shortURL]
+  res.redirect("/urls")
+});
+
+//update a URL resource
+app.put("/urls/:id", (req, res) => {
+  urlDatabase[req.params.id] = req.body.updateURL
+  res.redirect("/urls")
+});
+
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username)
+  res.redirect("/urls")
+});
+
+app.post('/logout/:username', (req,res)=>{
+  res.clearCookie('username')
+  res.redirect('/urls');
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
