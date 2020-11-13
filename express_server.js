@@ -9,14 +9,14 @@ const cookieSession = require('cookie-session')
 
 app.set("view engine", "ejs");
 
+//DATABASES
 const urlDatabase = {
 };
 
 const users = {
 };
 
-
-//Middleware
+//MIDDLEWARE
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(methodOverride('_method'));
 app.use(cookieParser())
@@ -25,7 +25,7 @@ app.use(cookieSession({
   keys: ['test'],
 }))
 
-
+//FUNCTIONS
 function generateRandomString() {
   const alphaNum = 'abcdefghijklmnopqrstuvwxyz0123456789'
   const alphaNumArray = alphaNum.split('')
@@ -51,7 +51,7 @@ const emailCheck = function(email, users){
   if (userArray.length !== 0) {
     for(let user of userArray) {
       if (Object.values(user).includes(email)) {
-        return true
+        return user
       } 
     }
   }
@@ -103,7 +103,14 @@ app.get("/register", (req, res) => {
   res.render("register", templateVars)
 })
 
-//POST ROUTE
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: users[req.session.user_id]
+  }
+  res.render("login", templateVars)
+})
+
+//POST ROUTES
 //generate unique shortURL
 app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
@@ -115,17 +122,6 @@ app.post("/urls", (req, res) => {
 //delete URL
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL]
-  res.redirect("/urls")
-});
-
-//update a URL resource
-app.put("/urls/:id", (req, res) => {
-  urlDatabase[req.params.id] = req.body.updateURL
-  res.redirect("/urls")
-});
-
-app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username)
   res.redirect("/urls")
 });
 
@@ -154,6 +150,28 @@ app.post('/register', (req, res) => {
   req.session.user_id = id
   res.redirect('/urls');
 })
+
+app.post("/login", (req, res) => {
+  const email = req.body.email
+  const password = req.body.password
+  if (!emailCheck(email, users)){
+    return res.status(403).send({error: "Incorrect Email/Password", status: 403})
+  }
+  if (emailCheck(email, users)) { 
+    if (password !== emailCheck(email, users).password) {
+      return res.status(403).send({error: "Incorrect Email/Password", status: 403})
+    }
+    req.session.user_id = (emailCheck(email, users)).id
+  }
+  res.redirect("/urls")
+});
+
+//PUT ROUTES
+//update a URL resource
+app.put("/urls/:id", (req, res) => {
+  urlDatabase[req.params.id] = req.body.updateURL
+  res.redirect("/urls")
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
